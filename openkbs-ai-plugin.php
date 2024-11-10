@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: OpenKBS AI Plugin
-Description: Enables API key authentication for WordPress REST API
+Description: Connect Agentic AI to your WordPress
 Version: 1.0
 Author: kbMaster
 */
@@ -18,23 +18,17 @@ class OpenKBSAIPlugin {
     }
 
     public function validate_api_key($result) {
-        // If another authentication method is being used, don't interrupt it
         if ($result !== null) {
             return $result;
         }
 
-        // Get the API key from the settings
         $stored_api_key = get_option('openkbs_api_key');
-
-        // Get the API key from the request header
         $api_key_header = isset($_SERVER['HTTP_X_API_KEY']) ? $_SERVER['HTTP_X_API_KEY'] : '';
 
-        // If no API key is provided in the header
         if (empty($api_key_header)) {
-            return true; // Allow the request to continue for normal WordPress authentication
+            return true;
         }
 
-        // Validate the API key
         if ($api_key_header !== $stored_api_key) {
             return new WP_Error(
                 'rest_forbidden',
@@ -43,28 +37,35 @@ class OpenKBSAIPlugin {
             );
         }
 
-        // API key is valid, set current user to admin
-        wp_set_current_user(1); // Assumes admin is user ID 1
+        wp_set_current_user(1);
         return true;
     }
 
-    // Add admin menu page
     public function add_admin_menu() {
-        add_options_page(
+        add_menu_page(
+            'OpenKBS',
+            'OpenKBS',
+            'manage_options',
+            'openkbs-main-menu',
+            array($this, 'registration_page'),
+            'dashicons-admin-generic',
+            6
+        );
+
+        add_submenu_page(
+            'openkbs-main-menu',
             'OpenKBS AI Settings',
-            'OpenKBS AI',
+            'Settings',
             'manage_options',
             'openkbs-ai-settings',
             array($this, 'settings_page')
         );
     }
 
-    // Register settings
     public function register_settings() {
         register_setting('openkbs_settings', 'openkbs_api_key');
     }
 
-    // Settings page HTML
     public function settings_page() {
         ?>
         <div class="wrap">
@@ -89,7 +90,16 @@ class OpenKBSAIPlugin {
         </div>
         <?php
     }
+
+    public function registration_page() {
+        ?>
+        <div class="wrap">
+            <h2>OpenKBS Registration</h2>
+            <p>To use the OpenKBS AI Plugin, please register your site.</p>
+            <a href="https://openkbs.com/install/wordpressv01/" target="_blank" class="button button-primary">Register Now</a>
+        </div>
+        <?php
+    }
 }
 
-// Initialize the plugin
 new OpenKBSAIPlugin();
