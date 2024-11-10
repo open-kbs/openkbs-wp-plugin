@@ -6,6 +6,9 @@ Version: 1.0
 Author: kbMaster
 */
 
+// Include the utils.php file
+require_once plugin_dir_path(__FILE__) . 'utils.php';
+
 class OpenKBSAIPlugin {
     public function __construct() {
         add_action('rest_api_init', array($this, 'register_api_key_authentication'));
@@ -47,11 +50,20 @@ class OpenKBSAIPlugin {
             'OpenKBS',
             'manage_options',
             'openkbs-main-menu',
-            array($this, 'registration_page'),
-            'dashicons-admin-generic',
+            array($this, 'home_page'),
+            load_svg('assets/icon.svg'),
             6
         );
 
+        add_submenu_page(
+            'openkbs-main-menu',
+            'Home',
+            'Home',
+            'manage_options',
+            'openkbs-main-menu',
+            array($this, 'home_page')
+        );
+    
         add_submenu_page(
             'openkbs-main-menu',
             'OpenKBS AI Settings',
@@ -91,11 +103,11 @@ class OpenKBSAIPlugin {
         <?php
     }
 
-    public function registration_page() {
+    public function home_page() {
         ?>
         <div class="wrap">
             <h2>OpenKBS Registration</h2>
-            <p>To use the OpenKBS AI Plugin, please register your site.</p>
+            <p>To use the OpenKBS AI Plugin, please register your account.</p>
             <a href="https://openkbs.com/install/wordpressv01/" target="_blank" class="button button-primary">Register Now</a>
         </div>
         <?php
