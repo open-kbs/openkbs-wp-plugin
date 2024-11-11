@@ -21,3 +21,7 @@ function store_openkbs_kbId() {
 function modify_admin_footer_text() {
     return '';
 }
+
+function remove_update_footer() {
+    return '';
+}

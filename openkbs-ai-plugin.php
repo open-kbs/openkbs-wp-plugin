@@ -17,6 +17,7 @@ class OpenKBSAIPlugin {
         add_action('wp_ajax_store_openkbs_kbId', 'store_openkbs_kbId');
         add_action('wp_ajax_nopriv_store_openkbs_kbId', 'store_openkbs_kbId');    
         add_filter('admin_footer_text', 'modify_admin_footer_text');
+        add_filter('update_footer', 'remove_update_footer', 11);
     }
 
     public function register_api_key_authentication() {
@@ -116,7 +117,7 @@ class OpenKBSAIPlugin {
         }
 
         ?>
-        <div class="wrap" style="margin: 0; padding: 0;">
+        <div class="wrap" style="margin: 0; padding: 0; margin-left: -20px;">
             <iframe id="openkbs-iframe" src="<?php echo esc_url($home_url); ?>" width="100%" style="border: none;"></iframe>
         </div>
         <script type="text/javascript">
