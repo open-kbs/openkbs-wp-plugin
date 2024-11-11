@@ -5,4 +5,15 @@ function load_svg($svg_path) {
     if (file_exists($icon_path)) {
         return 'data:image/svg+xml;base64,' . base64_encode(file_get_contents($icon_path));
     }
+    return ''; // Add a return statement to handle the case where the file doesn't exist
+}
+
+function store_openkbs_kbId() {
+    if (isset($_POST['kbId'])) {
+        $kbId = sanitize_text_field($_POST['kbId']);
+        update_option('openkbs_kbId', $kbId);
+        wp_send_json_success('kbId stored');
+    } else {
+        wp_send_json_error('No kbId provided');
+    }
 }

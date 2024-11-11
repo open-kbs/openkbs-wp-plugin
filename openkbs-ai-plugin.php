@@ -14,6 +14,10 @@ class OpenKBSAIPlugin {
         add_action('rest_api_init', array($this, 'register_api_key_authentication'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
+
+         // Register AJAX handler
+         add_action('wp_ajax_store_openkbs_kbId', 'store_openkbs_kbId');
+         add_action('wp_ajax_nopriv_store_openkbs_kbId', 'store_openkbs_kbId');
     }
 
     public function register_api_key_authentication() {
@@ -104,12 +108,57 @@ class OpenKBSAIPlugin {
     }
 
     public function home_page() {
+        $home_url = 'https://openkbs.com/install/3h1f9a48fca/';
+
+        $kbId = get_option('openkbs_kbId', false);
+
+        if ($kbId) {
+            $home_url = 'https://' . $kbId . '.apps.openkbs.com';
+        }
+
         ?>
-        <div class="wrap">
-            <h2>OpenKBS Registration</h2>
-            <p>To use the OpenKBS AI Plugin, please register your account.</p>
-            <a href="https://openkbs.com/install/wordpressv01/" target="_blank" class="button button-primary">Register Now</a>
+        <div class="wrap" style="margin: 0; padding: 0;">
+            <iframe id="openkbs-iframe" src="<?php echo esc_url($home_url); ?>" width="100%" style="border: none;"></iframe>
         </div>
+        <script type="text/javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                var iframe = document.getElementById('openkbs-iframe');
+                function resizeIframe() {
+                    var wpAppBarHeight = 112;
+                    iframe.style.height = (window.innerHeight - wpAppBarHeight) + 'px';
+                }
+                window.addEventListener('resize', resizeIframe);
+                resizeIframe();
+
+                // Listen for the custom event from the iframe
+                window.addEventListener('message', function(event) {     
+                    if (!event.data || !event.data.type || event.data.type.indexOf('openkbs') !== 0 || !event.data.kbId) {
+                        return;
+                    }
+
+                    var type = event.data.type
+                    var kbId = event.data.kbId
+                
+                    // Check the origin of the message
+                    if (event.origin !== 'https://' + kbId + '.apps.openkbs.com') {
+                        return;
+                    }
+
+                    // // Check the message type
+                    if (type === 'openkbsKBLoggedIn') {                    
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('POST', '<?php echo admin_url('admin-ajax.php'); ?>', true);
+                        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                        xhr.onreadystatechange = function() {
+                            if (xhr.readyState === 4 && xhr.status === 200) {
+                                console.log('KB stored successfully');
+                            }
+                        };
+                        xhr.send('action=store_openkbs_kbId&kbId=' + encodeURIComponent(kbId));
+                    }
+                });
+            });
+        </script>
         <?php
     }
 }
