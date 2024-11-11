@@ -5,7 +5,7 @@ function load_svg($svg_path) {
     if (file_exists($icon_path)) {
         return 'data:image/svg+xml;base64,' . base64_encode(file_get_contents($icon_path));
     }
-    return ''; // Add a return statement to handle the case where the file doesn't exist
+    return '';
 }
 
 function store_openkbs_kbId() {
@@ -16,4 +16,8 @@ function store_openkbs_kbId() {
     } else {
         wp_send_json_error('No kbId provided');
     }
+}
+
+function modify_admin_footer_text() {
+    return '';
 }

@@ -14,10 +14,9 @@ class OpenKBSAIPlugin {
         add_action('rest_api_init', array($this, 'register_api_key_authentication'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
-
-         // Register AJAX handler
-         add_action('wp_ajax_store_openkbs_kbId', 'store_openkbs_kbId');
-         add_action('wp_ajax_nopriv_store_openkbs_kbId', 'store_openkbs_kbId');
+        add_action('wp_ajax_store_openkbs_kbId', 'store_openkbs_kbId');
+        add_action('wp_ajax_nopriv_store_openkbs_kbId', 'store_openkbs_kbId');    
+        add_filter('admin_footer_text', 'modify_admin_footer_text');
     }
 
     public function register_api_key_authentication() {
