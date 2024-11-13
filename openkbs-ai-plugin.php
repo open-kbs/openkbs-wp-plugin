@@ -2,11 +2,10 @@
 /*
 Plugin Name: OpenKBS AI Plugin
 Description: Connect Agentic AI to your WordPress
-Version: 1.0
+Version: 1.1
 Author: kbMaster
 */
 
-// Include the utils.php file
 require_once plugin_dir_path(__FILE__) . 'utils.php';
 
 class OpenKBSAIPlugin {
@@ -29,6 +28,7 @@ class OpenKBSAIPlugin {
             return $result;
         }
 
+        // Example: http://localhost:3080/wp-json/wp/v2/pages/ -H 'X-API-Key: secret_key'
         $stored_api_key = get_option('openkbs_api_key');
         $api_key_header = isset($_SERVER['HTTP_X_API_KEY']) ? $_SERVER['HTTP_X_API_KEY'] : '';
 
@@ -80,6 +80,7 @@ class OpenKBSAIPlugin {
 
     public function register_settings() {
         register_setting('openkbs_settings', 'openkbs_api_key');
+        register_setting('openkbs_settings', 'openkbs_kbId');
     }
 
     public function settings_page() {
@@ -95,8 +96,16 @@ class OpenKBSAIPlugin {
                     <tr>
                         <th scope="row">API Key</th>
                         <td>
-                            <input type="text" name="openkbs_api_key" 
+                            <input type="password" name="openkbs_api_key" 
                                    value="<?php echo esc_attr(get_option('openkbs_api_key')); ?>" 
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">KB ID</th>
+                        <td>
+                            <input type="text" name="openkbs_kbId" 
+                                   value="<?php echo esc_attr(get_option('openkbs_kbId')); ?>" 
                                    class="regular-text">
                         </td>
                     </tr>
@@ -108,7 +117,8 @@ class OpenKBSAIPlugin {
     }
 
     public function home_page() {
-        $home_url = 'https://openkbs.com/install/3h1f9a48fca/';
+        // $home_url = 'https://openkbs.com/install/3h1f9a48fca/';
+        $home_url = 'https://openkbs.com/apps';
 
         $kbId = get_option('openkbs_kbId', false);
 
@@ -117,20 +127,19 @@ class OpenKBSAIPlugin {
         }
 
         ?>
-        <div class="wrap" style="margin: 0; padding: 0; margin-left: -20px;">
+        <div class="wrap" style="margin: 0; padding: 0; margin-left: -20px; margin-bottom: -66px;">
             <iframe id="openkbs-iframe" src="<?php echo esc_url($home_url); ?>" width="100%" style="border: none;"></iframe>
         </div>
         <script type="text/javascript">
             document.addEventListener('DOMContentLoaded', function() {
                 var iframe = document.getElementById('openkbs-iframe');
                 function resizeIframe() {
-                    var wpAppBarHeight = 112;
-                    iframe.style.height = (window.innerHeight - wpAppBarHeight) + 'px';
+                    var wpBarHeight = 38;
+                    iframe.style.height = (window.innerHeight - wpBarHeight) + 'px';
                 }
                 window.addEventListener('resize', resizeIframe);
                 resizeIframe();
 
-                // Listen for the custom event from the iframe
                 window.addEventListener('message', function(event) {     
                     if (!event.data || !event.data.type || event.data.type.indexOf('openkbs') !== 0 || !event.data.kbId) {
                         return;
@@ -139,12 +148,10 @@ class OpenKBSAIPlugin {
                     var type = event.data.type
                     var kbId = event.data.kbId
                 
-                    // Check the origin of the message
                     if (event.origin !== 'https://' + kbId + '.apps.openkbs.com') {
                         return;
                     }
 
-                    // // Check the message type
                     if (type === 'openkbsKBLoggedIn') {                    
                         var xhr = new XMLHttpRequest();
                         xhr.open('POST', '<?php echo admin_url('admin-ajax.php'); ?>', true);
