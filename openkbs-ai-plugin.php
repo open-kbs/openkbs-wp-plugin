@@ -117,13 +117,18 @@ class OpenKBSAIPlugin {
     }
 
     public function home_page() {
-        // $home_url = 'https://openkbs.com/install/3h1f9a48fca/';
-        $home_url = 'https://openkbs.com/apps';
+        $is_localhost = explode(':', $_SERVER['HTTP_HOST'])[0] === 'localhost';
+
+        $home_url = $is_localhost 
+            ? 'http://localhost:3002/wordpress-ai-plugin-blueprints/' 
+            : 'https://openkbs.com/wordpress-ai-plugin-blueprints/';
 
         $kbId = get_option('openkbs_kbId', false);
 
         if ($kbId) {
-            $home_url = 'https://' . $kbId . '.apps.openkbs.com';
+            $home_url = $is_localhost 
+                ? 'http://' . $kbId . '.apps.localhost:3002'
+                : 'https://' . $kbId . '.apps.openkbs.com';
         }
 
         ?>
@@ -140,7 +145,7 @@ class OpenKBSAIPlugin {
                 window.addEventListener('resize', resizeIframe);
                 resizeIframe();
 
-                window.addEventListener('message', function(event) {     
+                window.addEventListener('message', function(event) {    
                     if (!event.data || !event.data.type || event.data.type.indexOf('openkbs') !== 0 || !event.data.kbId) {
                         return;
                     }
@@ -148,7 +153,7 @@ class OpenKBSAIPlugin {
                     var type = event.data.type
                     var kbId = event.data.kbId
                 
-                    if (event.origin !== 'https://' + kbId + '.apps.openkbs.com') {
+                    if (!new RegExp('^https?://' + kbId + '\\.apps\\.(openkbs\\.com|localhost:\\d+)$').test(event.origin)) {
                         return;
                     }
 
