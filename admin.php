@@ -245,40 +245,33 @@ function settings_page() {
             
             <?php foreach ($apps as $app_id => $app): ?>
             <div class="app-settings" style="margin-bottom: 30px; padding: 20px; background: #fff; border: 1px solid #ccc;">
-                <h3><?php echo esc_html($app['kbTitle']); ?></h3>
+                <img src="https://file.openkbs.com/kb-image/<?php echo $app_id; ?>.png" width="128"  />
                 <table class="form-table">
                     <tr>
-                        <th scope="row">KB ID: <?php echo esc_attr($app['kbId']); ?></th>
-                        <td>
-                            <input type="text" name="openkbs_apps[<?php echo $app_id; ?>][kbId]" 
-                                   value="<?php echo esc_attr($app['kbId']); ?>" class="regular-text">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">OpenKBS API Key</th>
-                        <td>
-                            <input type="text" name="openkbs_apps[<?php echo $app_id; ?>][apiKey]" 
-                                   value="<?php echo esc_attr($app['apiKey']); ?>" class="regular-text">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">KB Title</th>
+                        <th scope="row">Menu Title</th>
                         <td>
                             <input type="text" name="openkbs_apps[<?php echo $app_id; ?>][kbTitle]" 
                                    value="<?php echo esc_attr($app['kbTitle']); ?>" class="regular-text">
                         </td>
                     </tr>
                     <tr>
+                        <th scope="row">OpenKBS API Key</th>
+                        <td>
+                            <input type="password" name="openkbs_apps[<?php echo $app_id; ?>][apiKey]" 
+                                   value="<?php echo esc_attr($app['apiKey']); ?>" class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
                         <th scope="row">AES Key</th>
                         <td>
-                            <input type="text" name="openkbs_apps[<?php echo $app_id; ?>][AESKey]" 
+                            <input type="password" name="openkbs_apps[<?php echo $app_id; ?>][AESKey]" 
                                    value="<?php echo esc_attr($app['AESKey']); ?>" class="regular-text">
                         </td>
                     </tr>
                     <tr>
                         <th scope="row">WP API Key</th>
                         <td>
-                            <input type="text" name="openkbs_apps[<?php echo $app_id; ?>][wpapiKey]" 
+                            <input type="password" name="openkbs_apps[<?php echo $app_id; ?>][wpapiKey]" 
                                    value="<?php echo esc_attr($app['wpapiKey']); ?>" class="regular-text" readonly>
                         </td>
                     </tr>
