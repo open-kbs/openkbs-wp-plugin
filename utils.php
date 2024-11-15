@@ -8,6 +8,29 @@ function load_svg($svg_path) {
     return '';
 }
 
+// In your PHP file (plugin main file or relevant include)
+function enqueue_openkbs_scripts() {
+    wp_enqueue_script(
+        'openkbs-connection',
+        plugins_url('js/openkbs-connection.js', __FILE__),
+        array('jquery'),
+        '1.0.0',
+        true
+    );
+
+    wp_localize_script('openkbs-connection', 'openkbsVars', array(
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('openkbs-connection-nonce'),
+        'i18n' => array(
+            'connectToOpenKBS' => __('Connect to OpenKBS', 'openkbs-ai'),
+            'requestingAccess' => __('OpenKBS is requesting access to your WordPress site.', 'openkbs-ai'),
+            'knowledgeBase' => __('Knowledge Base:', 'openkbs-ai'),
+            'cancel' => __('Cancel', 'openkbs-ai'),
+            'approveConnection' => __('Approve', 'openkbs-ai')
+        )
+    ));
+}
+
 function evpKDF($password, $salt, $keySize, $ivSize) {
     $targetKeySize = $keySize + $ivSize;
     $derivedBytes = '';

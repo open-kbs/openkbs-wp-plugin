@@ -1,10 +1,12 @@
 <?php
--/*
--Plugin Name: OpenKBS AI Plugin
--Description: Connect AI Agents to your WordPress
--Version: 1.1
--Author: kbMaster
--*/
+/*
+Plugin Name: OpenKBS AI Plugin
+Description: Connect AI Agents to your WordPress
+Version: 1.1
+Author: kbMaster
+Text Domain: openkbs-ai
+Domain Path: /languages
+*/
 
 require_once plugin_dir_path(__FILE__) . 'utils.php';
 
@@ -16,8 +18,10 @@ class OpenKBSAIPlugin {
         add_action('wp_ajax_register_openkbs_app', 'register_openkbs_app');
         add_action('wp_ajax_nopriv_register_openkbs_app', 'register_openkbs_app');
         add_action('wp_ajax_delete_openkbs_app', 'delete_openkbs_app');
+        add_action('admin_enqueue_scripts', 'enqueue_openkbs_scripts');
         add_filter('admin_footer_text', 'modify_admin_footer_text');
         add_filter('update_footer', 'remove_update_footer', 11);
+        
     }
 
     public function register_api_key_authentication() {
@@ -131,6 +135,110 @@ class OpenKBSAIPlugin {
         </div>
         <script type="text/javascript">
             document.addEventListener('DOMContentLoaded', function() {
+                // Helper function to escape HTML
+                function escapeHtml(unsafe) {
+                    return unsafe
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+                }
+
+                function showWordPressConfirmation(kbTitle) {
+                    return new Promise((resolve) => {
+                        // Create modal wrapper
+                        const modal = document.createElement('div');
+                        modal.className = 'openkbs-modal-wrapper';
+                        
+                        // Create modal content
+                        modal.innerHTML = `
+                            <div class="openkbs-modal">
+                                <div class="openkbs-modal-header">
+                                    <h2>${openkbsVars.i18n.connectToOpenKBS}</h2>
+                                </div>
+                                <div class="openkbs-modal-content">
+                                    <p>${openkbsVars.i18n.requestingAccess}</p>
+                                    <p>${openkbsVars.i18n.knowledgeBase} <strong>${escapeHtml(kbTitle)}</strong></p>
+                                </div>
+                                <div class="openkbs-modal-footer">
+                                    <button class="button button-secondary cancel-button">
+                                        ${openkbsVars.i18n.cancel}
+                                    </button>
+                                    <button class="button button-primary approve-button">
+                                        ${openkbsVars.i18n.approveConnection}
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+
+                        // Rest of the code remains the same...
+                        const styles = document.createElement('style');
+                        styles.textContent = `
+                            .openkbs-modal-wrapper {
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                bottom: 0;
+                                background: rgba(0,0,0,0.7);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                z-index: 159000;
+                            }
+                            
+                            .openkbs-modal {
+                                background: #ffffff;
+                                border-radius: 3px;
+                                box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+                                width: 500px;
+                                max-width: 90%;
+                                padding: 0;
+                            }
+                            
+                            .openkbs-modal-header {
+                                padding: 15px 20px;
+                                border-bottom: 1px solid #ddd;
+                            }
+                            
+                            .openkbs-modal-header h2 {
+                                margin: 0;
+                                font-size: 1.3em;
+                                line-height: 1.5;
+                            }
+                            
+                            .openkbs-modal-content {
+                                padding: 20px;
+                            }
+                            
+                            .openkbs-modal-footer {
+                                padding: 15px 20px;
+                                border-top: 1px solid #ddd;
+                                text-align: right;
+                            }
+                            
+                            .openkbs-modal-footer button {
+                                margin-left: 10px;
+                            }
+                        `;
+
+                        document.head.appendChild(styles);
+                        document.body.appendChild(modal);
+
+                        // Handle button clicks
+                        modal.querySelector('.cancel-button').addEventListener('click', () => {
+                            document.body.removeChild(modal);
+                            resolve(false);
+                        });
+
+                        modal.querySelector('.approve-button').addEventListener('click', () => {
+                            document.body.removeChild(modal);
+                            resolve(true);
+                        });
+                    });
+                }
+
                 var iframe = document.getElementById('openkbs-iframe');
                 function resizeIframe() {
                     var wpBarHeight = 38;
@@ -156,24 +264,29 @@ class OpenKBSAIPlugin {
                     }
 
                     if (type === 'openkbsKBInstalled') {
-                        var xhr = new XMLHttpRequest();
-                        xhr.open('POST', '<?php echo admin_url('admin-ajax.php'); ?>', true);
-                        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                        xhr.onreadystatechange = function() {
-                            if (xhr.readyState === 4 && xhr.status === 200) {
-                                var response = JSON.parse(xhr.responseText);
-                                if (response.success) {
-                                    window.location.href = response.data.redirect;
-                                } else {
-                                    console.error('Registration failed:', response.data);
-                                }
+                        // Show confirmation dialog first
+                        showWordPressConfirmation(kbTitle).then(confirmed => {
+                            if (confirmed) {
+                                var xhr = new XMLHttpRequest();
+                                xhr.open('POST', ajaxurl, true);
+                                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                                xhr.onreadystatechange = function() {
+                                    if (xhr.readyState === 4 && xhr.status === 200) {
+                                        var response = JSON.parse(xhr.responseText);
+                                        if (response.success) {
+                                            window.location.href = response.data.redirect;
+                                        } else {
+                                            console.error('Registration failed:', response.data);
+                                        }
+                                    }
+                                };
+                                xhr.send('action=register_openkbs_app&kbId=' + encodeURIComponent(kbId) +
+                                        '&apiKey=' + encodeURIComponent(apiKey) +
+                                        '&JWT=' + encodeURIComponent(JWT) +
+                                        '&kbTitle=' + encodeURIComponent(kbTitle) +
+                                        '&AESKey=' + encodeURIComponent(AESKey));
                             }
-                        };
-                        xhr.send('action=register_openkbs_app&kbId=' + encodeURIComponent(kbId) +
-                                '&apiKey=' + encodeURIComponent(apiKey) +
-                                '&JWT=' + encodeURIComponent(JWT) +
-                                '&kbTitle=' + encodeURIComponent(kbTitle) +
-                                '&AESKey=' + encodeURIComponent(AESKey));
+                        });
                     }
                 });
             });
