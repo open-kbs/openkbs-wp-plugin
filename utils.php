@@ -40,7 +40,7 @@ function encrypt_kb_item($item, $passphrase) {
     return base64_encode($encryptedData);
 }
 
-function create_secret_with_kb_token($secret_name, $secret_value, $token) {
+function store_secret($secret_name, $secret_value, $token) {
     $response = wp_remote_post('https://kb.openkbs.com/', array(
         'body' => json_encode(array(
             'token' => $token,
@@ -72,13 +72,22 @@ function register_openkbs_app() {
         $AESKey = sanitize_text_field($_POST['AESKey']);
         $wpapiKey = wp_generate_password(20, true, false);
         
-        // First, encrypt the wordpress APIKey
-        $encrypted_wpapi_key = encrypt_kb_item($wpapiKey, $AESKey);
-        
-        // Create the secret via openkbs API
-        $api_response = create_secret_with_kb_token('wpapiKey', $encrypted_wpapi_key, $jwt);
-        
-        if ($api_response === false) {
+        // =========================
+        // Security Implementation
+        // =========================
+
+        // First level encryption with an in-browser generated AES key
+        $encrypted_wpapi_key = encrypt_kb_item($wpapiKey, $AESKey);    
+        $encrypted_site_url = encrypt_kb_item(get_site_url(), $AESKey);
+
+        /*
+        * Transmit to secret storage for second-level encryption with an asymmetric public key.
+        * Only the code execution service can decrypt, as the storage lacks the private key.
+        */
+        $api_response = store_secret('wpapiKey', $encrypted_wpapi_key, $jwt);
+        $url_response = store_secret('wpUrl', $encrypted_site_url, $jwt);
+                
+        if ($api_response === false || $url_response === false) {
             wp_send_json_error('Failed to create secret');
             return;
         }
@@ -100,7 +109,7 @@ function register_openkbs_app() {
         update_option('openkbs_apps', $apps);
         wp_send_json_success(array(
             'message' => 'App registered successfully',
-            'appId' => $new_app_id,
+            'appId' => $kbId,
             'redirect' => admin_url('admin.php?page=openkbs-app-' . $kbId)
         ));
     } else {
