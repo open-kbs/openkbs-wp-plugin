@@ -17,7 +17,11 @@ function register_openkbs_app() {
         $wpapiKey = wp_generate_password(20, true, false);
         
         $apps = get_option('openkbs_apps', array());
-        $new_app_id = uniqid('app_');
+        if (!is_array($apps)) {
+            $apps = array();
+        }
+        
+        $new_app_id = 'app_' . time(); // Using timestamp as unique identifier
         
         $apps[$new_app_id] = array(
             'kbId' => $kbId,

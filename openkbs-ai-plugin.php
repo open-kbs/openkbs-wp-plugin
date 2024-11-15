@@ -139,7 +139,7 @@ class OpenKBSAIPlugin {
                 window.addEventListener('resize', resizeIframe);
                 resizeIframe();
 
-                window.addEventListener('message', function(event) {    
+                window.addEventListener('message', function(event) {                    
                     if (!event.data || !event.data.type || event.data.type.indexOf('openkbs') !== 0 || !event.data.kbId) {
                         return;
                     }
