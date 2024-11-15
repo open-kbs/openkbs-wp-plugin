@@ -8,7 +8,6 @@ function load_svg($svg_path) {
     return '';
 }
 
-// In your PHP file (plugin main file or relevant include)
 function enqueue_openkbs_scripts() {
     wp_enqueue_script(
         'openkbs-connection',
@@ -45,16 +44,13 @@ function evpKDF($password, $salt, $keySize, $ivSize) {
 }
 
 function encrypt_kb_item($item, $passphrase) {
-    // Ensure passphrase and item are in binary format
     $passphrase = mb_convert_encoding($passphrase, 'UTF-8');
     $item = mb_convert_encoding($item, 'UTF-8');
 
-    // Generate an 8-byte (64-bit) salt
     $salt = openssl_random_pseudo_bytes(8);
 
-    // Derive key and IV using the EVP key derivation function
-    $keySize = 32; // 256 bits
-    $ivSize = 16;  // 128 bits
+    $keySize = 32;
+    $ivSize = 16;
     $derived = evpKDF($passphrase, $salt, $keySize, $ivSize);
     $key = $derived['key'];
     $iv = $derived['iv'];
@@ -84,77 +80,6 @@ function store_secret($secret_name, $secret_value, $token) {
     $result = json_decode($body, true);
     
     return isset($result['success']) && $result['success'] === true;
-}
-
-function register_openkbs_app() {
-    if (isset($_POST['JWT']) && isset($_POST['kbId']) && isset($_POST['apiKey']) && isset($_POST['kbTitle']) && isset($_POST['AESKey'])) {
-        $jwt = sanitize_text_field($_POST['JWT']);
-        $kbId = sanitize_text_field($_POST['kbId']);
-        $apiKey = sanitize_text_field($_POST['apiKey']);
-        $kbTitle = sanitize_text_field($_POST['kbTitle']);
-        $AESKey = sanitize_text_field($_POST['AESKey']);
-        $wpapiKey = wp_generate_password(20, true, false);
-        
-        // =========================
-        // Security Implementation
-        // =========================
-
-        // First level encryption with an in-browser generated AES key
-        $encrypted_wpapi_key = encrypt_kb_item($wpapiKey, $AESKey);    
-        $encrypted_site_url = encrypt_kb_item(get_site_url(), $AESKey);
-
-        /*
-        * Transmit to secret storage for second-level encryption with an asymmetric public key.
-        * Only the code execution service can decrypt, as the storage lacks the private key.
-        */
-        $api_response = store_secret('wpapiKey', $encrypted_wpapi_key, $jwt);
-        $url_response = store_secret('wpUrl', $encrypted_site_url, $jwt);
-                
-        if ($api_response === false || $url_response === false) {
-            wp_send_json_error('Failed to create secret');
-            return;
-        }
-        
-        // If secret creation was successful, proceed with local storage
-        $apps = get_option('openkbs_apps', array());
-        if (!is_array($apps)) {
-            $apps = array();
-        }    
-        
-        $apps[$kbId] = array(
-            'kbId' => $kbId,
-            'apiKey' => $apiKey,
-            'kbTitle' => $kbTitle,
-            'AESKey' => $AESKey,
-            'wpapiKey' => $wpapiKey
-        );
-
-        update_option('openkbs_apps', $apps);
-        wp_send_json_success(array(
-            'message' => 'App registered successfully',
-            'appId' => $kbId,
-            'redirect' => admin_url('admin.php?page=openkbs-app-' . $kbId)
-        ));
-    } else {
-        wp_send_json_error('Incomplete data provided');
-    }
-}
-
-function delete_openkbs_app() {
-    if (isset($_POST['app_id'])) {
-        $app_id = sanitize_text_field($_POST['app_id']);
-        $apps = get_option('openkbs_apps', array());
-        
-        if (isset($apps[$app_id])) {
-            unset($apps[$app_id]);
-            update_option('openkbs_apps', $apps);
-            wp_send_json_success('App deleted successfully');
-        } else {
-            wp_send_json_error('App not found');
-        }
-    } else {
-        wp_send_json_error('No app ID provided');
-    }
 }
 
 function modify_admin_footer_text() {
