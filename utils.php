@@ -8,15 +8,28 @@ function load_svg($svg_path) {
     return '';
 }
 
-function store_openkbs_kbId() {
-    if (isset($_POST['kbId'])) {
+function register_openkbs_app() {
+    if (isset($_POST['kbId']) && isset($_POST['apiKey']) && isset($_POST['kbTitle']) && isset($_POST['AESKey'])) {
         $kbId = sanitize_text_field($_POST['kbId']);
-        update_option('openkbs_kbId', $kbId);
-        wp_send_json_success('kbId stored');
+        $apiKey = sanitize_text_field($_POST['apiKey']);
+        $kbTitle = sanitize_text_field($_POST['kbTitle']);
+        $AESKey = sanitize_text_field($_POST['AESKey']);
+        $wpapiKey = wp_generate_password(20, true, false);
+        $data = array(
+            'kbId' => $kbId,
+            'apiKey' => $apiKey,
+            'kbTitle' => $kbTitle,
+            'AESKey' => $AESKey,
+            'wpapiKey' => $wpapiKey
+        );
+
+        update_option('openkbs_app_data', $data);
+        wp_send_json_success('App data stored');
     } else {
-        wp_send_json_error('No kbId provided');
+        wp_send_json_error('Incomplete data provided');
     }
 }
+
 
 function modify_admin_footer_text() {
     return '';

@@ -13,8 +13,8 @@ class OpenKBSAIPlugin {
         add_action('rest_api_init', array($this, 'register_api_key_authentication'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
-        add_action('wp_ajax_store_openkbs_kbId', 'store_openkbs_kbId');
-        add_action('wp_ajax_nopriv_store_openkbs_kbId', 'store_openkbs_kbId');    
+        add_action('wp_ajax_register_openkbs_app', 'register_openkbs_app');
+        add_action('wp_ajax_nopriv_register_openkbs_app', 'register_openkbs_app');
         add_filter('admin_footer_text', 'modify_admin_footer_text');
         add_filter('update_footer', 'remove_update_footer', 11);
     }
@@ -29,7 +29,8 @@ class OpenKBSAIPlugin {
         }
 
         // Example: http://localhost:3080/wp-json/wp/v2/pages/ -H 'X-API-Key: secret_key'
-        $stored_api_key = get_option('openkbs_api_key');
+        $openkbs_app_data = get_option('openkbs_app_data', array());    
+        $stored_api_key = isset($openkbs_app_data['wpapiKey']) ? $openkbs_app_data['wpapiKey'] : '';
         $api_key_header = isset($_SERVER['HTTP_X_API_KEY']) ? $_SERVER['HTTP_X_API_KEY'] : '';
 
         if (empty($api_key_header)) {
@@ -79,11 +80,16 @@ class OpenKBSAIPlugin {
     }
 
     public function register_settings() {
-        register_setting('openkbs_settings', 'openkbs_api_key');
-        register_setting('openkbs_settings', 'openkbs_kbId');
+        register_setting('openkbs_settings', 'openkbs_app_data');
     }
 
     public function settings_page() {
+        $openkbs_app_data = get_option('openkbs_app_data', array());
+        $apiKey = isset($openkbs_app_data['apiKey']) ? $openkbs_app_data['apiKey'] : '';
+        $kbId = isset($openkbs_app_data['kbId']) ? $openkbs_app_data['kbId'] : '';
+        $kbTitle = isset($openkbs_app_data['kbTitle']) ? $openkbs_app_data['kbTitle'] : '';
+        $AESKey = isset($openkbs_app_data['AESKey']) ? $openkbs_app_data['AESKey'] : '';
+        $wpapiKey = isset($openkbs_app_data['wpapiKey']) ? $openkbs_app_data['wpapiKey'] : '';
         ?>
         <div class="wrap">
             <h2>OpenKBS AI Settings</h2>
@@ -94,18 +100,42 @@ class OpenKBSAIPlugin {
                 ?>
                 <table class="form-table">
                     <tr>
-                        <th scope="row">API Key</th>
+                        <th scope="row">KB IDs</th>
                         <td>
-                            <input type="password" name="openkbs_api_key" 
-                                   value="<?php echo esc_attr(get_option('openkbs_api_key')); ?>" 
+                            <input type="text" name="openkbs_app_data[kbId]" 
+                                   value="<?php echo esc_attr($kbId); ?>" 
                                    class="regular-text">
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row">KB ID</th>
+                        <th scope="row">OpenKBS API Key</th>
                         <td>
-                            <input type="text" name="openkbs_kbId" 
-                                   value="<?php echo esc_attr(get_option('openkbs_kbId')); ?>" 
+                            <input type="text" name="openkbs_app_data[apiKey]" 
+                                   value="<?php echo esc_attr($apiKey); ?>" 
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">KB Title</th>
+                        <td>
+                            <input type="text" name="openkbs_app_data[kbTitle]" 
+                                   value="<?php echo esc_attr($kbTitle); ?>" 
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">AES Key</th>
+                        <td>
+                            <input type="text" name="openkbs_app_data[AESKey]" 
+                                   value="<?php echo esc_attr($AESKey); ?>" 
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">WP API Key</th>
+                        <td>
+                            <input type="text" name="openkbs_app_data[wpapiKey]" 
+                                   value="<?php echo esc_attr($wpapiKey); ?>" 
                                    class="regular-text">
                         </td>
                     </tr>
@@ -123,7 +153,8 @@ class OpenKBSAIPlugin {
             ? 'http://localhost:3002/wordpress-ai-plugin-blueprints/' 
             : 'https://openkbs.com/wordpress-ai-plugin-blueprints/';
 
-        $kbId = get_option('openkbs_kbId', false);
+        $openkbs_app_data = get_option('openkbs_app_data', array());
+        $kbId = isset($openkbs_app_data['kbId']) ? $openkbs_app_data['kbId'] : false;
 
         if ($kbId) {
             $home_url = $is_localhost 
@@ -150,14 +181,19 @@ class OpenKBSAIPlugin {
                         return;
                     }
 
-                    var type = event.data.type
-                    var kbId = event.data.kbId
-                
+                    var type = event.data.type;
+                    var kbId = event.data.kbId;
+                    var apiKey = event.data.apiKey;
+                    var kbTitle = event.data.kbTitle;
+                    var AESKey = event.data.AESKey;
+
                     if (!new RegExp('^https?://' + kbId + '\\.apps\\.(openkbs\\.com|localhost:\\d+)$').test(event.origin)) {
                         return;
                     }
 
-                    if (type === 'openkbsKBLoggedIn') {                    
+                    if (type === 'openkbsKBInstalled') { 
+                        console.log('event.data', event.data);
+
                         var xhr = new XMLHttpRequest();
                         xhr.open('POST', '<?php echo admin_url('admin-ajax.php'); ?>', true);
                         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -166,13 +202,16 @@ class OpenKBSAIPlugin {
                                 console.log('KB stored successfully');
                             }
                         };
-                        xhr.send('action=store_openkbs_kbId&kbId=' + encodeURIComponent(kbId));
+                        xhr.send('action=register_openkbs_app&kbId=' + encodeURIComponent(kbId) +
+                                '&apiKey=' + encodeURIComponent(apiKey) +
+                                '&kbTitle=' + encodeURIComponent(kbTitle) +
+                                '&AESKey=' + encodeURIComponent(AESKey));
                     }
                 });
             });
         </script>
-        <?php
-    }
+            <?php
+        }
 }
 
 new OpenKBSAIPlugin();
