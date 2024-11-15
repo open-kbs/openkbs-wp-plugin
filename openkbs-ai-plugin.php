@@ -1,10 +1,10 @@
 <?php
-/*
-Plugin Name: OpenKBS AI Plugin
-Description: Connect Agentic AI to your WordPress
-Version: 1.1
-Author: kbMaster
-*/
+-/*
+-Plugin Name: OpenKBS AI Plugin
+-Description: Connect AI Agents to your WordPress
+-Version: 1.1
+-Author: kbMaster
+-*/
 
 require_once plugin_dir_path(__FILE__) . 'utils.php';
 
@@ -15,6 +15,7 @@ class OpenKBSAIPlugin {
         add_action('admin_init', array($this, 'register_settings'));
         add_action('wp_ajax_register_openkbs_app', 'register_openkbs_app');
         add_action('wp_ajax_nopriv_register_openkbs_app', 'register_openkbs_app');
+        add_action('wp_ajax_delete_openkbs_app', 'delete_openkbs_app');
         add_filter('admin_footer_text', 'modify_admin_footer_text');
         add_filter('update_footer', 'remove_update_footer', 11);
     }
@@ -28,16 +29,21 @@ class OpenKBSAIPlugin {
             return $result;
         }
 
-        // Example: http://localhost:3080/wp-json/wp/v2/pages/ -H 'X-API-Key: secret_key'
-        $openkbs_app_data = get_option('openkbs_app_data', array());    
-        $stored_api_key = isset($openkbs_app_data['wpapiKey']) ? $openkbs_app_data['wpapiKey'] : '';
         $api_key_header = isset($_SERVER['HTTP_X_API_KEY']) ? $_SERVER['HTTP_X_API_KEY'] : '';
-
         if (empty($api_key_header)) {
             return true;
         }
 
-        if ($api_key_header !== $stored_api_key) {
+        $apps = get_option('openkbs_apps', array());
+        $valid_key = false;
+        foreach ($apps as $app) {
+            if ($api_key_header === $app['wpapiKey']) {
+                $valid_key = true;
+                break;
+            }
+        }
+
+        if (!$valid_key) {
             return new WP_Error(
                 'rest_forbidden',
                 'Invalid API key provided.',
@@ -55,116 +61,73 @@ class OpenKBSAIPlugin {
             'OpenKBS',
             'manage_options',
             'openkbs-main-menu',
-            array($this, 'home_page'),
+            array($this, 'blueprints_page'),
             load_svg('assets/icon.svg'),
             6
         );
 
+        // Add Blueprints page
         add_submenu_page(
             'openkbs-main-menu',
-            'Home',
-            'Home',
+            'Blueprints',
+            'Blueprints',
             'manage_options',
             'openkbs-main-menu',
-            array($this, 'home_page')
+            array($this, 'blueprints_page')
         );
-    
+
+        // Add registered apps as submenu items
+        $apps = get_option('openkbs_apps', array());
+        foreach ($apps as $app_id => $app) {
+            add_submenu_page(
+                'openkbs-main-menu',
+                $app['kbTitle'],
+                $app['kbTitle'],
+                'manage_options',
+                'openkbs-app-' . $app_id,
+                array($this, 'render_app_page')
+            );
+        }
+
+        // Add Settings page at the bottom
         add_submenu_page(
             'openkbs-main-menu',
-            'OpenKBS AI Settings',
+            'OpenKBS Settings',
             'Settings',
             'manage_options',
-            'openkbs-ai-settings',
+            'openkbs-settings',
             array($this, 'settings_page')
         );
     }
 
-    public function register_settings() {
-        register_setting('openkbs_settings', 'openkbs_app_data');
-    }
-
-    public function settings_page() {
-        $openkbs_app_data = get_option('openkbs_app_data', array());
-        $apiKey = isset($openkbs_app_data['apiKey']) ? $openkbs_app_data['apiKey'] : '';
-        $kbId = isset($openkbs_app_data['kbId']) ? $openkbs_app_data['kbId'] : '';
-        $kbTitle = isset($openkbs_app_data['kbTitle']) ? $openkbs_app_data['kbTitle'] : '';
-        $AESKey = isset($openkbs_app_data['AESKey']) ? $openkbs_app_data['AESKey'] : '';
-        $wpapiKey = isset($openkbs_app_data['wpapiKey']) ? $openkbs_app_data['wpapiKey'] : '';
-        ?>
-        <div class="wrap">
-            <h2>OpenKBS AI Settings</h2>
-            <form method="post" action="options.php">
-                <?php
-                settings_fields('openkbs_settings');
-                do_settings_sections('openkbs_settings');
-                ?>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">KB IDs</th>
-                        <td>
-                            <input type="text" name="openkbs_app_data[kbId]" 
-                                   value="<?php echo esc_attr($kbId); ?>" 
-                                   class="regular-text">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">OpenKBS API Key</th>
-                        <td>
-                            <input type="text" name="openkbs_app_data[apiKey]" 
-                                   value="<?php echo esc_attr($apiKey); ?>" 
-                                   class="regular-text">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">KB Title</th>
-                        <td>
-                            <input type="text" name="openkbs_app_data[kbTitle]" 
-                                   value="<?php echo esc_attr($kbTitle); ?>" 
-                                   class="regular-text">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">AES Key</th>
-                        <td>
-                            <input type="text" name="openkbs_app_data[AESKey]" 
-                                   value="<?php echo esc_attr($AESKey); ?>" 
-                                   class="regular-text">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">WP API Key</th>
-                        <td>
-                            <input type="text" name="openkbs_app_data[wpapiKey]" 
-                                   value="<?php echo esc_attr($wpapiKey); ?>" 
-                                   class="regular-text">
-                        </td>
-                    </tr>
-                </table>
-                <?php submit_button(); ?>
-            </form>
-        </div>
-        <?php
-    }
-
-    public function home_page() {
+    public function blueprints_page() {
         $is_localhost = explode(':', $_SERVER['HTTP_HOST'])[0] === 'localhost';
-
-        $home_url = $is_localhost 
+        $blueprints_url = $is_localhost 
             ? 'http://localhost:3002/wordpress-ai-plugin-blueprints/' 
             : 'https://openkbs.com/wordpress-ai-plugin-blueprints/';
+        
+        $this->render_iframe($blueprints_url);
+    }
 
-        $openkbs_app_data = get_option('openkbs_app_data', array());
-        $kbId = isset($openkbs_app_data['kbId']) ? $openkbs_app_data['kbId'] : false;
-
-        if ($kbId) {
-            $home_url = $is_localhost 
-                ? 'http://' . $kbId . '.apps.localhost:3002'
-                : 'https://' . $kbId . '.apps.openkbs.com';
+    public function render_app_page() {
+        $current_page = $_GET['page'];
+        $app_id = str_replace('openkbs-app-', '', $current_page);
+        $apps = get_option('openkbs_apps', array());
+        
+        if (isset($apps[$app_id])) {
+            $is_localhost = explode(':', $_SERVER['HTTP_HOST'])[0] === 'localhost';
+            $app_url = $is_localhost 
+                ? 'http://' . $apps[$app_id]['kbId'] . '.apps.localhost:3002'
+                : 'https://' . $apps[$app_id]['kbId'] . '.apps.openkbs.com';
+            
+            $this->render_iframe($app_url);
         }
+    }
 
+    private function render_iframe($url) {
         ?>
         <div class="wrap" style="margin: 0; padding: 0; margin-left: -20px; margin-bottom: -66px;">
-            <iframe id="openkbs-iframe" src="<?php echo esc_url($home_url); ?>" width="100%" style="border: none;"></iframe>
+            <iframe id="openkbs-iframe" src="<?php echo esc_url($url); ?>" width="100%" style="border: none;"></iframe>
         </div>
         <script type="text/javascript">
             document.addEventListener('DOMContentLoaded', function() {
@@ -191,15 +154,13 @@ class OpenKBSAIPlugin {
                         return;
                     }
 
-                    if (type === 'openkbsKBInstalled') { 
-                        console.log('event.data', event.data);
-
+                    if (type === 'openkbsKBInstalled') {
                         var xhr = new XMLHttpRequest();
                         xhr.open('POST', '<?php echo admin_url('admin-ajax.php'); ?>', true);
                         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
                         xhr.onreadystatechange = function() {
                             if (xhr.readyState === 4 && xhr.status === 200) {
-                                console.log('KB stored successfully');
+                                window.location.reload();
                             }
                         };
                         xhr.send('action=register_openkbs_app&kbId=' + encodeURIComponent(kbId) +
@@ -210,8 +171,91 @@ class OpenKBSAIPlugin {
                 });
             });
         </script>
-            <?php
-        }
+        <?php
+    }
+
+    public function settings_page() {
+        $apps = get_option('openkbs_apps', array());
+        ?>
+        <div class="wrap">
+            <h2>OpenKBS Apps Settings</h2>
+            <form method="post" action="options.php">
+                <?php settings_fields('openkbs_settings'); ?>
+                
+                <?php foreach ($apps as $app_id => $app): ?>
+                <div class="app-settings" style="margin-bottom: 30px; padding: 20px; background: #fff; border: 1px solid #ccc;">
+                    <h3><?php echo esc_html($app['kbTitle']); ?></h3>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">KB ID</th>
+                            <td>
+                                <input type="text" name="openkbs_apps[<?php echo $app_id; ?>][kbId]" 
+                                       value="<?php echo esc_attr($app['kbId']); ?>" class="regular-text">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">OpenKBS API Key</th>
+                            <td>
+                                <input type="text" name="openkbs_apps[<?php echo $app_id; ?>][apiKey]" 
+                                       value="<?php echo esc_attr($app['apiKey']); ?>" class="regular-text">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">KB Title</th>
+                            <td>
+                                <input type="text" name="openkbs_apps[<?php echo $app_id; ?>][kbTitle]" 
+                                       value="<?php echo esc_attr($app['kbTitle']); ?>" class="regular-text">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">AES Key</th>
+                            <td>
+                                <input type="text" name="openkbs_apps[<?php echo $app_id; ?>][AESKey]" 
+                                       value="<?php echo esc_attr($app['AESKey']); ?>" class="regular-text">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">WP API Key</th>
+                            <td>
+                                <input type="text" name="openkbs_apps[<?php echo $app_id; ?>][wpapiKey]" 
+                                       value="<?php echo esc_attr($app['wpapiKey']); ?>" class="regular-text" readonly>
+                            </td>
+                        </tr>
+                    </table>
+                    <p>
+                        <button type="button" class="button delete-app" data-app-id="<?php echo esc_attr($app_id); ?>">
+                            Delete App
+                        </button>
+                    </p>
+                </div>
+                <?php endforeach; ?>
+
+                <?php submit_button('Save All Apps'); ?>
+            </form>
+        </div>
+        <script>
+            jQuery(document).ready(function($) {
+                $('.delete-app').click(function() {
+                    if (confirm('Are you sure you want to delete this app?')) {
+                        var appId = $(this).data('app-id');
+                        $.post(ajaxurl, {
+                            action: 'delete_openkbs_app',
+                            app_id: appId
+                        }, function(response) {
+                            if (response.success) {
+                                window.location.reload();
+                            }
+                        });
+                    }
+                });
+            });
+        </script>
+        <?php
+    }
+
+    public function register_settings() {
+        register_setting('openkbs_settings', 'openkbs_apps');
+    }
 }
 
 new OpenKBSAIPlugin();

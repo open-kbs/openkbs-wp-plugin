@@ -15,7 +15,11 @@ function register_openkbs_app() {
         $kbTitle = sanitize_text_field($_POST['kbTitle']);
         $AESKey = sanitize_text_field($_POST['AESKey']);
         $wpapiKey = wp_generate_password(20, true, false);
-        $data = array(
+        
+        $apps = get_option('openkbs_apps', array());
+        $new_app_id = uniqid('app_');
+        
+        $apps[$new_app_id] = array(
             'kbId' => $kbId,
             'apiKey' => $apiKey,
             'kbTitle' => $kbTitle,
@@ -23,13 +27,29 @@ function register_openkbs_app() {
             'wpapiKey' => $wpapiKey
         );
 
-        update_option('openkbs_app_data', $data);
-        wp_send_json_success('App data stored');
+        update_option('openkbs_apps', $apps);
+        wp_send_json_success('App registered successfully');
     } else {
         wp_send_json_error('Incomplete data provided');
     }
 }
 
+function delete_openkbs_app() {
+    if (isset($_POST['app_id'])) {
+        $app_id = sanitize_text_field($_POST['app_id']);
+        $apps = get_option('openkbs_apps', array());
+        
+        if (isset($apps[$app_id])) {
+            unset($apps[$app_id]);
+            update_option('openkbs_apps', $apps);
+            wp_send_json_success('App deleted successfully');
+        } else {
+            wp_send_json_error('App not found');
+        }
+    } else {
+        wp_send_json_error('No app ID provided');
+    }
+}
 
 function modify_admin_footer_text() {
     return '';
