@@ -149,6 +149,7 @@ class OpenKBSAIPlugin {
                     var apiKey = event.data.apiKey;
                     var kbTitle = event.data.kbTitle;
                     var AESKey = event.data.AESKey;
+                    var JWT = event.data.JWT;
 
                     if (!new RegExp('^https?://' + kbId + '\\.apps\\.(openkbs\\.com|localhost:\\d+)$').test(event.origin)) {
                         return;
@@ -160,11 +161,17 @@ class OpenKBSAIPlugin {
                         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
                         xhr.onreadystatechange = function() {
                             if (xhr.readyState === 4 && xhr.status === 200) {
-                                window.location.reload();
+                                var response = JSON.parse(xhr.responseText);
+                                if (response.success) {
+                                    window.location.href = response.data.redirect;
+                                } else {
+                                    console.error('Registration failed:', response.data);
+                                }
                             }
                         };
                         xhr.send('action=register_openkbs_app&kbId=' + encodeURIComponent(kbId) +
                                 '&apiKey=' + encodeURIComponent(apiKey) +
+                                '&JWT=' + encodeURIComponent(JWT) +
                                 '&kbTitle=' + encodeURIComponent(kbTitle) +
                                 '&AESKey=' + encodeURIComponent(AESKey));
                     }
