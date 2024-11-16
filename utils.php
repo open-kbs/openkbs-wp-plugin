@@ -10,16 +10,16 @@ function load_svg($svg_path) {
 
 function enqueue_openkbs_scripts() {
     wp_enqueue_script(
-        'openkbs-connection',
-        plugins_url('js/openkbs-connection.js', __FILE__),
+        'openkbs-functions',
+        plugins_url('js/openkbs-functions.js', __FILE__),
         array('jquery'),
         '1.0.0',
         true
     );
 
-    wp_localize_script('openkbs-connection', 'openkbsVars', array(
+    wp_localize_script('openkbs-functions', 'openkbsVars', array(
         'ajaxurl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('openkbs-connection-nonce'),
+        'nonce' => wp_create_nonce('openkbs-functions-nonce'),
         'i18n' => array(
             'connectToOpenKBS' => __('Connect to OpenKBS', 'openkbs-ai'),
             'requestingAccess' => __('OpenKBS is requesting access to your WordPress site.', 'openkbs-ai'),

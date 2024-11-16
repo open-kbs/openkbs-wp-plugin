@@ -75,111 +75,7 @@ function render_iframe($url) {
         <iframe id="openkbs-iframe" src="<?php echo esc_url($url); ?>" width="100%" style="border: none;"></iframe>
     </div>
     <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', function() {
-            // Helper function to escape HTML
-            function escapeHtml(unsafe) {
-                return unsafe
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#039;");
-            }
-
-            function showWordPressConfirmation(kbTitle) {
-                return new Promise((resolve) => {
-                    // Create modal wrapper
-                    const modal = document.createElement('div');
-                    modal.className = 'openkbs-modal-wrapper';
-                    
-                    // Create modal content
-                    modal.innerHTML = `
-                        <div class="openkbs-modal">
-                            <div class="openkbs-modal-header">
-                                <h2>${openkbsVars.i18n.connectToOpenKBS}</h2>
-                            </div>
-                            <div class="openkbs-modal-content">
-                                <p>${openkbsVars.i18n.requestingAccess}</p>
-                                <p>${openkbsVars.i18n.knowledgeBase} <strong>${escapeHtml(kbTitle)}</strong></p>
-                            </div>
-                            <div class="openkbs-modal-footer">
-                                <button class="button button-secondary cancel-button">
-                                    ${openkbsVars.i18n.cancel}
-                                </button>
-                                <button class="button button-primary approve-button">
-                                    ${openkbsVars.i18n.approveConnection}
-                                </button>
-                            </div>
-                        </div>
-                    `;
-
-                    // Rest of the code remains the same...
-                    const styles = document.createElement('style');
-                    styles.textContent = `
-                        .openkbs-modal-wrapper {
-                            position: fixed;
-                            top: 0;
-                            left: 0;
-                            right: 0;
-                            bottom: 0;
-                            background: rgba(0,0,0,0.7);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            z-index: 159000;
-                        }
-                        
-                        .openkbs-modal {
-                            background: #ffffff;
-                            border-radius: 3px;
-                            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-                            width: 500px;
-                            max-width: 90%;
-                            padding: 0;
-                        }
-                        
-                        .openkbs-modal-header {
-                            padding: 15px 20px;
-                            border-bottom: 1px solid #ddd;
-                        }
-                        
-                        .openkbs-modal-header h2 {
-                            margin: 0;
-                            font-size: 1.3em;
-                            line-height: 1.5;
-                        }
-                        
-                        .openkbs-modal-content {
-                            padding: 20px;
-                        }
-                        
-                        .openkbs-modal-footer {
-                            padding: 15px 20px;
-                            border-top: 1px solid #ddd;
-                            text-align: right;
-                        }
-                        
-                        .openkbs-modal-footer button {
-                            margin-left: 10px;
-                        }
-                    `;
-
-                    document.head.appendChild(styles);
-                    document.body.appendChild(modal);
-
-                    // Handle button clicks
-                    modal.querySelector('.cancel-button').addEventListener('click', () => {
-                        document.body.removeChild(modal);
-                        resolve(false);
-                    });
-
-                    modal.querySelector('.approve-button').addEventListener('click', () => {
-                        document.body.removeChild(modal);
-                        resolve(true);
-                    });
-                });
-            }
-
+        document.addEventListener('DOMContentLoaded', function() {       
             var iframe = document.getElementById('openkbs-iframe');
             function resizeIframe() {
                 var wpBarHeight = 38;
@@ -245,7 +141,8 @@ function settings_page() {
             
             <?php foreach ($apps as $app_id => $app): ?>
             <div class="app-settings" style="margin-bottom: 30px; padding: 20px; background: #fff; border: 1px solid #ccc;">
-                <img src="https://file.openkbs.com/kb-image/<?php echo $app_id; ?>.png" width="128"  />
+                <h3><a href="https://<?php echo $app_id; ?>.apps.openkbs.com" target="_blank" ><?php echo esc_attr($app['kbTitle']); ?></a></h3>
+                <img src="https://file.openkbs.com/kb-image/<?php echo $app_id; ?>.png" width="128"  />    
                 <table class="form-table">
                     <tr>
                         <th scope="row">Menu Title</th>
