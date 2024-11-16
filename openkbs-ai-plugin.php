@@ -8,7 +8,7 @@ Text Domain: openkbs-ai
 Domain Path: /languages
 */
 
-require_once plugin_dir_path(__FILE__) . 'utils.php';
+require_once plugin_dir_path(__FILE__) . 'openkbs-utils.php';
 require_once plugin_dir_path(__FILE__) . 'admin.php';
 require_once plugin_dir_path(__FILE__) . 'api.php';
 
